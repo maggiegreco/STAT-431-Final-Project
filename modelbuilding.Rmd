@@ -273,6 +273,12 @@ for (i in 1:ntopchar){
   write_csv(data.frame(pm[[i]]), filestring)
 }
 
+for (i in 1:ntopchar){
+  filestring <- paste("pmats/", topcounts$Character[i],"fwprob.csv", sep = "")
+  
+  write_csv(data.frame(fwprobs[[i]]), filestring)
+}
+
 ```
 
 ```{r}
@@ -285,10 +291,12 @@ generate every unique pair of words that has at least one word after it
 twpm <- list()
 
 charpairs <- list()
+charcounts <- list()
 
 for (i in 1:ntopchar){
   print(i)
   charpairs[[i]] = list()
+  charcounts[[i]] = numeric()
   
   newlines <- charlines[[i]][,4]
   
@@ -304,20 +312,35 @@ for (i in 1:ntopchar){
     if (linelen > 2){
       
       for (k in 1:(linelen-1)){
-        if (!is.na(match(thisline[k], uniq[[i]])) & !is.na(match(thisline[k+1], uniq[[i]]))){
+        #if (!is.na(match(thisline[k], uniq[[i]])) & !is.na(match(thisline[k+1], uniq[[i]]))){
         newpair <- paste(thisline[k],thisline[k+1], " ")
         
         if (!newpair %in% charpairs[[i]]){
           curlen <- length(charpairs[[i]])
           charpairs[[i]][curlen + 1] <- newpair
+          charcounts[[i]][curlen + 1] <- 1
         }
-      }  
+        else{
+          myind <- match(newpair, charpairs[[i]])
+          charcounts[[i]][myind] <- charcounts[[i]][myind] + 1
+        }
+      #}  
     }
     }
   }
 }
 
 ```
+```{r}
+mean(charcounts[[1]])
+sum(charcounts[[1]] > 1) / length(charcounts[[1]])
+
+jj <- charpairs[[1]][charcounts[[1]] > 1,charcounts[[1]] > 1]
+
+
+```
+
+
 
 count the number of time each word appears after each pair of words
 ```{r}
