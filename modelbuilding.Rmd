@@ -1,0 +1,472 @@
+---
+title: "Model Building"
+author: "Tobias Iven"
+output: html_notebook
+---
+
+This is an [R Markdown](http://rmarkdown.rstudio.com) Notebook. When you execute code within the notebook, the results appear beneath the code. 
+
+Try executing this chunk by clicking the *Run* button within the chunk or by placing your cursor inside it and pressing *Ctrl+Shift+Enter*. 
+
+```{r}
+library(readr)
+sptext <- read_csv("All-seasons.csv")
+#View(sptext)
+library(stringr)
+library(dplyr)
+library(tidyr)
+library(reshape2)
+library(tuple)
+```
+
+
+```{r}
+counts <- sptext %>%
+  group_by(Character) %>%
+  summarize(nlines = n()) %>%
+  arrange(desc(nlines))
+  
+topcounts <- counts %>%
+  filter(nlines >= 630)
+  
+topchar <- sptext %>%
+  filter(Character %in% topcounts$Character) %>%
+  mutate(cleanline = str_to_lower(str_remove_all(Line, "[^[:alnum:] ]"))) %>%
+  select(Season, Episode, Character, cleanline)
+  
+ntopchar <- nrow(topcounts)
+
+topcharnames <- topcounts$Character
+```
+
+
+
+```{r}
+charmaxwords <- matrix(0, ntopchar)
+
+nuniq <- matrix(0, ntopchar)
+
+uniq <- list()
+                
+charlines <- list(rep(data.frame(), ntopchar))
+i = 1
+
+for (i in 1:ntopchar){
+  charlines[[i]] <- topchar %>%
+    filter(Character == topcharnames[i]) 
+    
+  chartext <- paste(charlines[[i]]$cleanline, collapse = " ")
+  
+  charwords <- chartext %>%
+    str_split(" ")
+  
+  charwords <- data.frame(words = charwords[[1]])
+  
+  worddf <- charwords %>%
+    filter(words != "") %>%
+    group_by(words) %>%
+    summarize(count = n()) %>%
+    arrange(desc(count)) %>%
+    filter(count > 3)
+  
+  unpickyworddf <- charwords %>%
+    filter(words != "") %>%
+    group_by(words) %>%
+    summarize(count = n()) %>%
+    arrange(desc(count)) %>%
+    filter(count > 2)
+
+  nuniq[i] <- nrow(worddf)
+  
+  uniq[[i]] <- worddf$words
+}
+```
+
+
+
+
+Making the empty p matrices
+```{r}
+pm <- list()
+
+for (i in 1:ntopchar){
+  pm[[i]] <- matrix(0, nuniq[i], nuniq[i])
+  mode(pm[[i]]) <- "integer"
+}
+```
+
+
+This is going to be one nutso butso for loop to generate the p matrix for every character
+fw probs is first words probs 
+p is next word probs
+```{r}
+fwprobs <- list()
+
+maxlinelens <- matrix(0, ntopchar)
+
+
+for (i in 1:ntopchar){
+  # go grab each line
+  # look at size of line
+  # Add on to ith first word, jth second word for m = 1:lengthline-1
+  #also record first words and counts
+  # determine if any first words with all zero second words (never followed), can only use for 
+  # will divide first words by total lines for first word prob
+  # for length of line, use counts for length of line divide by lines = probs
+  # if length of line 
+  maxlen = 0
+  
+  thisfwprobs <- matrix(0, nuniq[[i]])
+  
+  newlines <- charlines[[i]][,4]
+  
+  for (j in 1:nrow(newlines)){
+    
+    #cleaning the line
+    thisline <- newlines[[1]][j]
+    
+    thisline <- str_split(thisline, " ")[[1]]
+    
+    thisline <- thisline[thisline != ""]
+    
+    linelen <- length(thisline)
+    
+    #recording the maximum line length of each character
+    if (linelen > maxlen){maxlen = linelen}
+    
+    wordpositions <- matrix(0, linelen)
+    
+    #getting the position of each word in our unique vector
+    for (k in 1:linelen){
+      wordpositions[k] = match(thisline[k], uniq[[i]])
+    }
+
+    #adding one to the prob of the first word
+    if (!is.na(wordpositions[l])){
+      thisfwprobs[wordpositions[1]] = thisfwprobs[wordpositions[1]] + 1
+    }
+    
+    #looking the current word and the next, adding one to their trans. prob
+    if (linelen > 1) {
+      for (l in 1:(linelen-1)) {
+        
+        if (!is.na(wordpositions[l])){
+          xc = wordpositions[l]
+          yc = wordpositions[l + 1]
+        
+          pm[[i]][xc,yc] = pm[[i]][xc,yc] + 1
+          
+          }
+        
+      }
+    }
+  }
+  
+  #currently the probs are actually sum, this is scaling by row total
+  for (m in 1:nrow(pm[[i]])) {
+    
+    pm[[i]][m,] <- pm[[i]][m,] / sum(pm[[i]][m,])
+    
+  }
+  
+  #storing fw probs for character
+  fwprobs[[i]] <- thisfwprobs
+  
+  #storing max length for character
+  maxlinelens[i] <- maxlen
+}
+
+#scaling the first words the same way as trans probs
+for (q in 1:ntopchar){
+  fwprobs[[q]] <- fwprobs[[q]] / sum(fwprobs[[q]])
+}
+```
+
+
+```{r}
+match("this", uniq[[2]])
+
+(uniq[[2]])[15]
+
+nuniq[[2]]
+
+length(uniq[[2]])
+
+```
+```{r}
+firstword <- function(charnum){
+  p = runif(1)
+  iter = 1
+  sums = 0
+  
+  while (sums < p){
+    currentp = fwprobs[[charnum]][iter]
+    sums = sums + currentp
+    iter = iter + 1
+  }
+  
+  loc = iter - 1
+  
+  return(uniq[[charnum]][loc])
+  
+}
+```
+
+
+```{r}
+nextword <- function(charnum, word){
+  p = runif(1)
+  row = match(word, uniq[[charnum]])
+  iter = 1
+  sums = 0
+  while (sums < p){
+    currentp = pm[[charnum]][row,iter]
+    sums = sums + currentp
+    iter = iter + 1
+  }
+  
+  loc = iter - 1
+  
+  return(uniq[[charnum]][loc])
+  
+}
+
+```
+
+```{r}
+characterchoice = 1
+
+senlen = sample(1:maxlinelens[4], 1)
+
+senlist = list()
+
+senlist[1] = firstword(characterchoice)
+
+row = match(senlist[1], uniq[[characterchoice]])
+
+sumrow = sum(pm[[characterchoice]][row,])
+
+iter = 1
+
+while (sumrow > 0 && iter <= senlen){
+
+  newchoice = nextword(characterchoice, senlist[iter])
+  iter = iter + 1
+  senlist[iter] = newchoice
+}
+
+senlist <- as.matrix(senlist)
+
+sentence <- ""
+
+for (i in senlist){
+  sentence <- paste(sentence, i, "")
+}
+
+print(sentence)
+```
+
+```{r}
+for (i in 1:ntopchar){
+  filestring <- paste("pmats/", topcounts$Character[i],"onewordm.csv", sep = "")
+  
+  write_csv(data.frame(pm[[i]]), filestring)
+}
+
+```
+
+```{r}
+remove(pm)
+```
+
+
+generate every unique pair of words that has at least one word after it
+```{r}
+twpm <- list()
+
+charpairs <- list()
+
+for (i in 1:ntopchar){
+  print(i)
+  charpairs[[i]] = list()
+  
+  newlines <- charlines[[i]][,4]
+  
+  for (j in 1:nrow(newlines)){
+    thisline <- newlines[[1]][j]
+    
+    thisline <- str_split(thisline, " ")[[1]]
+    
+    thisline <- thisline[thisline != ""]
+    
+    linelen <- length(thisline)
+    
+    if (linelen > 2){
+      
+      for (k in 1:(linelen-1)){
+        if (!is.na(match(thisline[k], uniq[[i]])) & !is.na(match(thisline[k+1], uniq[[i]]))){
+        newpair <- paste(thisline[k],thisline[k+1], " ")
+        
+        if (!newpair %in% charpairs[[i]]){
+          curlen <- length(charpairs[[i]])
+          charpairs[[i]][curlen + 1] <- newpair
+        }
+      }  
+    }
+    }
+  }
+}
+
+```
+
+count the number of time each word appears after each pair of words
+```{r}
+for (i in 1:ntopchar){
+  twpm[[i]] <- matrix(0, length(charpairs[[i]]), nuniq[[i]])
+  mode(twpm[[i]]) <- "integer"
+}
+
+
+for (i in 1:ntopchar){
+  
+  newlines <- charlines[[i]][,2]
+  
+  for (j in 1:nrow(newlines)){
+    thisline <- newlines[[1]][j]
+    
+    thisline <- str_split(thisline, " ")[[1]]
+    
+    thisline <- thisline[thisline != ""]
+    
+    linelen <- length(thisline)
+    
+    if (linelen > 2){
+      for (k in 1:(linelen-2)){
+        
+        
+        
+        newpair <- paste(thisline[k],thisline[k+1], " ")
+        
+        xloc <- match(newpair, charpairs[[i]])
+        yloc <- match(thisline[k+2], uniq[[i]])
+        
+        twpm[[i]][xloc,yloc] <- twpm[[i]][xloc,yloc] + 1
+        
+      }    
+    }
+  }
+}
+
+```
+
+```{r}
+for (i in 1:ntopchar){
+  for (k in 1:nrow(twpm[[i]])){
+    twpm[[i]][k,] <- twpm[[i]][k,] / sum(twpm[[i]][k,])
+  }
+}
+
+```
+
+
+
+```{r}
+firstpair <- function(charnum){
+  pair <- sample(charpairs[[charnum]], 1)
+  
+  return(pair)
+  
+}
+```
+
+```{r}
+nextwordfrompair <- function(charnum, pair){
+  p = runif(1)
+  row = match(pair, charpairs[[charnum]])
+  iter = 1
+  sums = 0
+  
+  while (sums < p){
+    currentp = twpm[[charnum]][row,iter]
+    sums = sums + currentp
+    iter = iter + 1
+  }
+  
+  loc = iter - 1
+  
+  return(uniq[[charnum]][loc])
+}
+```
+
+```{r}
+characterchoice = 2
+
+senlen = sample(1:maxlinelens[4], 1)
+
+senlist = list()
+
+first = firstpair(characterchoice)
+
+split <- str_split(first, " ")[[1]]
+
+senlist[1] <- split[1]
+senlist[2] <- split[2]
+
+row = match(first, charpairs[[characterchoice]])
+
+sumrow = sum(twpm[[characterchoice]][row,])
+
+iter = 2
+
+while (!is.na(sumrow) && iter <= senlen){
+  newpair = paste(senlist[iter-1], senlist[iter], " ")
+  
+  row = match(newpair, charpairs[[characterchoice]])
+
+  sumrow = sum(twpm[[characterchoice]][row,])
+  
+  if (!is.na(sumrow)){
+    newchoice = nextwordfrompair(characterchoice, newpair)
+  }
+  
+  
+  iter = iter + 1
+  senlist[iter] = newchoice
+  
+}
+print(senlist)
+senlist <- as.matrix(senlist)
+
+sentence <- ""
+
+for (i in senlist){
+  sentence <- paste(sentence, i, "")
+}
+
+print(sentence)
+```
+
+```{r}
+for (i in 1:ntopchar){
+  filestring <- paste(topcounts$Character[i],"pmats/twowordm.csv", sep = "")
+  
+  write_csv(data.frame(twpm[[i]]), filestring)
+}
+
+```
+
+
+```{r}
+charwords %>%
+  group_by(words) %>%
+  summarise(count = n()) %>%
+  arrange(desc(count))
+ 
+length(grep("dirty jew", charlines[[1]]$cleanline))
+
+```
+Add a new chunk by clicking the *Insert Chunk* button on the toolbar or by pressing *Ctrl+Alt+I*.
+
+When you save the notebook, an HTML file containing the code and output will be saved alongside it (click the *Preview* button or press *Ctrl+Shift+K* to preview the HTML file).
+
+The preview shows you a rendered HTML copy of t8he contents of the editor. Consequently, unlike *Knit*, *Preview* does* not run any R code chunks. Instead, the output of the chunk when it was last run in the editor is displayed.
