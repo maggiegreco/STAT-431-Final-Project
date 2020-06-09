@@ -1,0 +1,44 @@
+---
+title: "Data Cleaning"
+author: "Tobias Iven"
+date: "6/8/2020"
+output: html_document
+---
+
+```{r}
+library(readr)
+sptext <- read_csv("All-seasons.csv")
+#View(sptext)
+library(stringr)
+library(dplyr)
+library(tidyr)
+library(reshape2)
+library(tuple)
+
+```
+```{r}
+counts <- sptext %>%
+  group_by(Character) %>%
+  summarize(nlines = n()) %>%
+  arrange(desc(nlines))
+  
+topcounts <- counts %>%
+  filter(nlines >= 630)
+  
+topchar <- sptext %>%
+  filter(Character %in% topcounts$Character) %>%
+  mutate(cleanline = str_to_lower(str_remove_all(Line, "[^[:alnum:] ]"))) %>%
+  select(Season, Episode, Character, cleanline)
+  
+ntopchar <- nrow(topcounts)
+
+topcharnames <- topcounts$Character
+```
+
+```{r}
+charlines <- topchar
+write_csv(charlines, "charline.csv")
+
+
+```
+
