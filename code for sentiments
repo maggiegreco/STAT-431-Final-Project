@@ -1,0 +1,27 @@
+rm(list = ls())
+library(SentimentAnalysis)
+library(SnowballC)
+library(dplyr)
+
+dataset <- read.csv("/Users/maggiegreco/Desktop/charline.csv")
+dataset <- data.frame(dataset)
+dataset <- na.omit(dataset)
+
+sentiments <- analyzeSentiment(dataset$cleanline)
+sentiments <- sentiments$SentimentQDAP
+
+
+dataset <- cbind(dataset, sentiments)
+dataset <- na.omit(data.frame(dataset))
+
+scores_by_C <- dataset %>% 
+  group_by(Character) %>%
+  summarize(average_score = mean(sentiments))
+
+scores_by_CS <- dataset %>% 
+  group_by(Character, Season) %>%
+  summarize(average_score = mean(sentiments))
+
+scores_by_CSE <- dataset %>% 
+  group_by(Character, Season, Episode) %>%
+  summarize(average_score = mean(sentiments))
