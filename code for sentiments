@@ -25,3 +25,15 @@ scores_by_CS <- dataset %>%
 scores_by_CSE <- dataset %>% 
   group_by(Character, Season, Episode) %>%
   summarize(average_score = mean(sentiments))
+
+scores_by_S <- dataset %>% 
+  group_by(Season) %>%
+  summarize(average_score = mean(sentiments))
+
+scores_by_SE <- dataset %>% 
+  group_by(Season, Episode) %>%
+  summarize(average_score = mean(sentiments))
+
+scores_by_E <- dataset %>% 
+  group_by(Episode) %>%
+  summarize(average_score = mean(sentiments))
