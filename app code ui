@@ -7,27 +7,42 @@
 #    http://shiny.rstudio.com/
 #
 
-library(shiny)
+library(shinydashboard)
 
-# Define UI for application that draws a histogram
-shinyUI(fluidPage(
+sidebar <- dashboardSidebar(
+    sidebarMenu(
+        menuItem("Sentiment Analysis", tabName = "sentiment analysis"),
+        menuItem("Descriptive Statistics", tabName = "descriptive statistics"),
+        menuItem("Dialogue Generator", tabName = "dialogue generator"),
+        menuItem("Information", tabName = "information")
+    )
+)
 
-    # Application title
-    titlePanel("Kenny Actually has Dialogue"),
-
-    # Sidebar with a slider input for number of bins
-    sidebarLayout(
-        sidebarPanel(
-            sliderInput("bins",
-                        "Number of bins:",
-                        min = 1,
-                        max = 50,
-                        value = 30)
+body <- dashboardBody(
+    tabItems(
+        tabItem(tabName = "sentiment analysis",
+                h2("Sentiment Analysis")
         ),
-
-        # Show a plot of the generated distribution
-        mainPanel(
-            plotOutput("distPlot")
+        
+        tabItem(tabName = "desriptive statistics",
+                h2("Desriptive Statistics")
+        ),
+        
+        tabItem(tabName = "dialogue generator",
+                h2("Dialogue Generator")
+        ),
+        
+        tabItem(tabName = "information",
+                h2("Information")
         )
     )
-))
+)
+
+shinyApp(
+    ui <-  dashboardPage(skin = "red",
+        dashboardHeader(title = "Kenny Actually Has Dialogue", titleWidth = 300),
+        sidebar,
+        body
+    ),
+    server = function(input, output)  { }
+)
