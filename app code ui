@@ -20,21 +20,13 @@ sidebar <- dashboardSidebar(
 
 body <- dashboardBody(
     tabItems(
-        tabItem(tabName = "sentiment analysis",
-                h2("Sentiment Analysis")
-        ),
+        tabItem(tabName = "sentiment analysis"),
         
-        tabItem(tabName = "desriptive statistics",
-                h2("Desriptive Statistics")
-        ),
+        tabItem(tabName = "desriptive statistics"),
         
-        tabItem(tabName = "dialogue generator",
-                h2("Dialogue Generator")
-        ),
+        tabItem(tabName = "dialogue generator"),
         
-        tabItem(tabName = "information",
-                h2("Information")
-        )
+        tabItem(tabName = "information")
     )
 )
 
