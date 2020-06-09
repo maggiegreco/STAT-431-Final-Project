@@ -14,7 +14,6 @@ library(dplyr)
 library(tidyr)
 library(reshape2)
 library(tuple)
-
 ```
 ```{r}
 counts <- sptext %>%
@@ -38,7 +37,50 @@ topcharnames <- topcounts$Character
 ```{r}
 charlines <- topchar
 write_csv(charlines, "charline.csv")
+```
+
+```{r}
+rn <- nrow(charlines)
+charwords <- data.frame()
+
+for (i in 1:rn){
+  
+  currentline <- as.character(charlines[i,4])
+  currentchar <- as.character(charlines[i,3])
+  currentep <- as.numeric(charlines[i,2])
+  currentseas <- as.numeric(charlines[i,1])
+  
+  words <- currentline %>%
+    str_split(" ")
+  
+  words <- words[[1]]
+  
+  wordsl <- length(words)
+  
+  charl <- rep(currentchar, wordsl)
+  epl <- rep(currentep, wordsl)
+  seasl <- rep(currentseas, wordsl)
+  
+  datatobind <- data.frame(Season = seasl,
+                           Episode = epl,
+                           Character = charl,
+                           words = words)
+  
+  charwords <- rbind(charwords, datatobind)
+  
+  
+  if (i %% 1000 == 0){print(paste(i/rn * 100, "% done"))}
+}
+jj <- str_split("a b c d" , " ")
+```
 
 
+```{r}
+charwords1 <- charwords %>%
+  filter(words != "")
+```
+
+```{r}
+write_csv(charwords1, "charwords.csv")
 ```
 
