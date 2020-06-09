@@ -8,6 +8,10 @@
 #
 
 library(shiny)
+library(SentimentAnalysis)
+library(SnowballC)
+library(dplyr)
+
 
 # Define server logic required to draw a histogram
 shinyServer(function(input, output) {
@@ -15,7 +19,7 @@ shinyServer(function(input, output) {
     output$distPlot <- renderPlot({
 
         # generate bins based on input$bins from ui.R
-        x    <- faithful[, 2]
+        x    <- scores_by_C$average_score
         bins <- seq(min(x), max(x), length.out = input$bins + 1)
 
         # draw the histogram with the specified number of bins
