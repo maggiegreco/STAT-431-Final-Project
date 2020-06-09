@@ -37,7 +37,7 @@ topcharnames <- topcounts$Character
 
 ```{r}
 charlines <- topchar
-write_csv(charlines, "")
+write_csv(charlines, "charline.csv")
 
 
 ```
