@@ -37,6 +37,7 @@ topchar <- sptext %>%
 ntopchar <- nrow(topcounts)
 
 topcharnames <- topcounts$Character
+topcharnames
 ```
 
 
@@ -236,7 +237,7 @@ nextword <- function(charnum, word){
 ```{r}
 characterchoice = 1
 
-senlen = sample(1:maxlinelens[4], 1)
+senlen = sample(1:length, 1)
 
 senlist = list()
 
@@ -265,6 +266,40 @@ for (i in senlist){
 
 print(sentence)
 ```
+```{r}
+generate <- function(characterchoice, length){
+  senlen = sample(1:length, 1)
+
+  senlist = list()
+  
+  senlist[1] = firstword(characterchoice)
+  
+  row = match(senlist[1], uniq[[characterchoice]])
+  
+  sumrow = sum(pm[[characterchoice]][row,])
+  
+  iter = 1
+  
+  while (sumrow > 0 && iter <= senlen){
+  
+    newchoice = nextword(characterchoice, senlist[iter])
+    iter = iter + 1
+    senlist[iter] = newchoice
+  }
+  
+  senlist <- as.matrix(senlist)
+  
+  sentence <- ""
+  
+  for (i in senlist){
+    sentence <- paste(sentence, i, "")
+  }
+  
+  print(sentence)
+  return(sentence)
+}
+generate(1, 10)
+```
 
 ```{r}
 for (i in 1:ntopchar){
@@ -277,6 +312,12 @@ for (i in 1:ntopchar){
   filestring <- paste("pmats/", topcounts$Character[i],"fwprob.csv", sep = "")
   
   write_csv(data.frame(fwprobs[[i]]), filestring)
+}
+
+for (i in 1:ntopchar){
+  filestring <- paste("pmats/", topcounts$Character[i],"uniqs.csv", sep = "")
+  
+  write_csv(data.frame(uniq[[i]]), filestring)
 }
 
 ```
