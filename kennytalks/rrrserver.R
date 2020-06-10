@@ -13,18 +13,33 @@ library(SnowballC)
 library(dplyr)
 
 
+newfunc <- function(){
+    
+}
+
 # Define server logic required to draw a histogram
-shinyServer(function(input, output) {
-
+server <- function(input, output) {
+    
     output$distPlot <- renderPlot({
-
+        
         # generate bins based on input$bins from ui.R
         x    <- scores_by_C$average_score
         bins <- seq(min(x), max(x), length.out = input$bins + 1)
-
+        
         # draw the histogram with the specified number of bins
         hist(x, breaks = bins, col = 'darkgray', border = 'white')
-
+        
+        
+        
+        
     })
-
-})
+    output$myplot <- renderPlot(plot(mtcars$mpg, mtcars$hp))
+    output$testing <- renderPrint("testest")
+    set.seed(122)
+    histdata <- rnorm(500)
+    
+    output$plot1 <- renderPlot({
+        data <- histdata[seq_len(input$slider)]
+        hist(data)
+    })
+}
